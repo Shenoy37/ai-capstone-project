@@ -1,0 +1,43 @@
+body {
+  background: #f5f7fb;
+}
+
+.subtitle {
+  color: #3d3d3d;
+}
+
+.messages {
+  margin-bottom: 1.5rem;
+}
+
+.message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.message.error {
+  background-color: #ffe9e9;
+  border: 1px solid #f17d7d;
+  color: #8a1c1c;
+}
+
+.results article {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 1.5rem 3rem rgba(15, 23, 42, 0.1);
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.footer {
+  margin-top: 4rem;
+  padding-bottom: 2rem;
+  font-size: 0.9rem;
+  color: #555;
+}

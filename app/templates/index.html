@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section>
+  <form method="post" action="{{ url_for('index') }}">
+    <div class="grid">
+      <label>
+        <span>Select domain</span>
+        <select name="domain" required>
+          <option value="pharma" {% if selected_domain == 'pharma' %}selected{% endif %}>Pharma</option>
+          <option value="finance" {% if selected_domain == 'finance' %}selected{% endif %}>Finance</option>
+        </select>
+      </label>
+      <label>
+        <span>Additional notes (optional)</span>
+        <textarea name="additional_notes" rows="4" placeholder="Specific regulatory focus, stakeholders to emphasize, success metrics, etc.">{{ additional_notes }}</textarea>
+      </label>
+    </div>
+
+    <label>
+      <span>Project context (plain text)</span>
+      <textarea name="project_description" rows="10" placeholder="Paste the core insights or summary from your discovery PDF here." required>{{ input_text }}</textarea>
+    </label>
+
+    <button type="submit">Generate BRD</button>
+  </form>
+</section>
+
+{% if brd %}
+<section class="results">
+  <article>
+    <header>
+      <h2>{{ brd.title }}</h2>
+      <p>{{ brd.executive_summary | replace('\n', '<br>') | safe }}</p>
+    </header>
+
+    <div class="two-column">
+      <div>
+        <h3>Objectives</h3>
+        <ul>
+          {% for item in brd.objectives %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>In Scope</h3>
+        <ul>
+          {% for item in brd.scope.in_scope %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Out of Scope</h3>
+        <ul>
+          {% for item in brd.scope.out_of_scope %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Stakeholders</h3>
+        <ul>
+          {% for item in brd.stakeholders %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Functional Requirements</h3>
+        <ul>
+          {% for item in brd.functional_requirements %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div>
+        <h3>Non-Functional Requirements</h3>
+        <ul>
+          {% for item in brd.non_functional_requirements %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Data Requirements</h3>
+        <ul>
+          {% for item in brd.data_requirements %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Regulatory & Compliance</h3>
+        <ul>
+          {% for item in brd.regulatory_and_compliance %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Risks & Mitigations</h3>
+        <ul>
+          {% for item in brd.risks_and_mitigations %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Timeline</h3>
+        <ul>
+          {% for item in brd.timeline %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Dependencies</h3>
+        <ul>
+          {% for item in brd.dependencies %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <h3>Open Questions</h3>
+        <ul>
+          {% for item in brd.open_questions %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <a role="button" class="contrast" href="{{ url_for('download') }}">Download as Word</a>
+    </footer>
+  </article>
+</section>
+{% endif %}
+{% endblock %}
