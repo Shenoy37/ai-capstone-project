@@ -1,12 +1,12 @@
 # Intelligent BRD Generator
 
-A Generative AI-powered application that creates domain-specific Business Requirement Documents (BRDs) for Pharmaceutical and Financial sectors.
+A Generative AI-powered application that creates domain-specific Business Requirement Documents (BRDs) for Pharmaceutical and Financial sectors using Mistral AI.
 
 ## 🚀 Features
 
 - **Domain-Specific Content Generation**: Tailored BRDs for Pharma and Finance domains
 - **Compliance-Aware Documentation**: Automatic inclusion of regulatory requirements
-- **AI-Powered Content**: Uses Google Gemini for intelligent content generation
+- **AI-Powered Content**: Uses Mistral AI for intelligent content generation
 - **Quality Validation**: Built-in validation for compliance, terminology, and completeness
 - **Export Functionality**: Generate professional Word documents
 - **User-Friendly Interface**: Intuitive Streamlit-based web interface
@@ -31,7 +31,7 @@ A Generative AI-powered application that creates domain-specific Business Requir
 
 ### Prerequisites
 - Python 3.8 or higher
-- Google Gemini API key
+- Mistral API key
 
 ### Step 1: Clone the Repository
 ```bash
@@ -47,7 +47,7 @@ pip install -r requirements.txt
 ### Step 3: Set Up Environment Variables
 Create a `.env` file in the project root:
 ```
-GEMINI_API_KEY=your_gemini_api_key_here
+MISTRAL_API_KEY=your_mistral_api_key_here
 ```
 
 ### Step 4: Run the Application
@@ -115,7 +115,7 @@ Download the final BRD as a Word document for further use.
 
 ### Application Settings
 Edit `config/settings.py` to modify:
-- API configuration
+- Mistral API configuration
 - Supported domains
 - Validation parameters
 - Document formatting options
@@ -153,7 +153,7 @@ The system validates generated BRDs based on:
 ### Common Issues and Solutions
 
 1. **API Connection Error**
-   - Verify your Gemini API key is correct
+   - Verify your Mistral API key is correct
    - Check internet connectivity
    - Ensure API quota is available
 
@@ -233,6 +233,7 @@ For support and questions:
 
 ## 🔄 Version History
 
+- **v1.1.0**: Mistral AI integration with enhanced error handling and retry logic
 - **v1.0.0**: Initial release with Pharma and Finance domain support
 - Basic BRD generation and validation
 - Word document export functionality

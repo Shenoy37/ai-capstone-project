@@ -11,9 +11,10 @@ load_dotenv()
 class Config:
     """Application configuration class"""
     
-    # API Configuration
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    GEMINI_MODEL = "models/gemini-2.5-pro-preview-03-25"
+    # Mistral API Configuration
+    MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+    MISTRAL_MODEL = "mistral-small-latest"
+    MISTRAL_API_BASE_URL = "https://api.mistral.ai/v1"
     
     # Application Settings
     APP_TITLE = "Intelligent BRD Generator"
@@ -53,8 +54,8 @@ class Config:
     @classmethod
     def validate_config(cls):
         """Validate configuration settings"""
-        if not cls.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY is required")
+        if not cls.MISTRAL_API_KEY:
+            raise ValueError("MISTRAL_API_KEY is required")
         
         # Create directories if they don't exist
         os.makedirs(cls.TEMPLATES_DIR, exist_ok=True)
@@ -62,3 +63,13 @@ class Config:
         os.makedirs(cls.COMPLIANCE_DIR, exist_ok=True)
         
         return True
+    
+    @classmethod
+    def get_api_config(cls):
+        """Get Mistral API configuration"""
+        return {
+            "provider": "mistral",
+            "api_key": cls.MISTRAL_API_KEY,
+            "model": cls.MISTRAL_MODEL,
+            "base_url": cls.MISTRAL_API_BASE_URL
+        }

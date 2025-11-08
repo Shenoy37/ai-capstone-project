@@ -1,10 +1,12 @@
 """
-AI Service for BRD Generator - Integration with Google Gemini API
+AI Service for BRD Generator - Integration with Mistral API
 """
 
-import google.generativeai as genai
+from mistralai import Mistral
 from typing import Dict, List, Optional
 import logging
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from config.settings import Config
 
 # Configure logging
@@ -12,17 +14,73 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AIService:
-    """Service class for AI model integration"""
+    """Service class for Mistral AI model integration"""
     
     def __init__(self):
-        """Initialize the AI service with Gemini API"""
+        """Initialize the AI service with Mistral API"""
         try:
             Config.validate_config()
-            genai.configure(api_key=Config.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(Config.GEMINI_MODEL)
-            logger.info("AI Service initialized successfully")
+            self.api_config = Config.get_api_config()
+            
+            self._init_mistral()
+                
+            logger.info("AI Service initialized successfully with Mistral provider")
+            
         except Exception as e:
             logger.error(f"Failed to initialize AI Service: {str(e)}")
+            raise
+    
+    def _init_mistral(self):
+        """Initialize Mistral API client"""
+        self.mistral_client = Mistral(
+            api_key=self.api_config["api_key"],
+            server_url=self.api_config.get("base_url")
+        )
+        logger.info("Mistral API client initialized")
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError, Exception))
+    )
+    def _make_mistral_request(self, messages: List[Dict], max_tokens: int = None, temperature: float = None) -> str:
+        """
+        Make a request to Mistral API with retry logic
+        
+        Args:
+            messages: List of message dictionaries for the conversation
+            max_tokens: Maximum tokens in response
+            temperature: Sampling temperature
+            
+        Returns:
+            Generated text response
+            
+        Raises:
+            Exception: If API request fails after retries
+        """
+        try:
+            # Rate limiting - add small delay between requests
+            time.sleep(0.5)
+            
+            logger.info(f"Making Mistral API request with model: {self.api_config['model']}")
+            
+            response = self.mistral_client.chat.complete(
+                model=self.api_config["model"],
+                messages=messages,
+                max_tokens=max_tokens or Config.MAX_TOKENS,
+                temperature=temperature or Config.TEMPERATURE
+            )
+            
+            if not response or not response.choices:
+                raise ValueError("Empty response from Mistral API")
+                
+            generated_text = response.choices[0].message.content
+            logger.info(f"Mistral API request successful, generated {len(generated_text)} characters")
+            
+            return generated_text
+            
+        except Exception as e:
+            logger.error(f"Mistral API request failed: {str(e)}")
             raise
     
     def generate_brd_content(self, 
@@ -33,7 +91,7 @@ class AIService:
                             stakeholders: str,
                             additional_requirements: str = "") -> Dict[str, str]:
         """
-        Generate BRD content using Gemini AI
+        Generate BRD content using Mistral AI
         
         Args:
             domain: Business domain (Pharma/Finance)
@@ -48,24 +106,18 @@ class AIService:
         """
         
         try:
-            # Construct the prompt based on domain
-            prompt = self._construct_prompt(
+            logger.info(f"Generating BRD content for {domain} domain using Mistral")
+            
+            # Construct Mistral messages
+            messages = self._construct_mistral_messages(
                 domain, project_title, project_description, 
                 business_objectives, stakeholders, additional_requirements
             )
             
-            # Generate content
-            logger.info(f"Generating BRD content for {domain} domain")
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=Config.MAX_TOKENS,
-                    temperature=Config.TEMPERATURE,
-                )
-            )
+            response_text = self._make_mistral_request(messages)
             
             # Parse and structure the response
-            brd_sections = self._parse_response(response.text, domain)
+            brd_sections = self._parse_response(response_text, domain)
             
             logger.info("BRD content generated successfully")
             return brd_sections
@@ -74,19 +126,29 @@ class AIService:
             logger.error(f"Error generating BRD content: {str(e)}")
             raise
     
-    def _construct_prompt(self, 
-                         domain: str, 
-                         project_title: str,
-                         project_description: str,
-                         business_objectives: str,
-                         stakeholders: str,
-                         additional_requirements: str) -> str:
-        """Construct domain-specific prompt for BRD generation"""
+    def _construct_mistral_messages(self, 
+                                 domain: str, 
+                                 project_title: str,
+                                 project_description: str,
+                                 business_objectives: str,
+                                 stakeholders: str,
+                                 additional_requirements: str) -> List[Dict]:
+        """Construct Mistral-specific message format for BRD generation"""
         
         domain_context = self._get_domain_context(domain)
         
-        prompt = f"""
-You are an expert Business Analyst specializing in {domain} domain. Generate a comprehensive Business Requirement Document (BRD) with the following details:
+        system_message = f"""You are an expert Business Analyst specializing in {domain} domain. Generate comprehensive, professional Business Requirement Documents (BRDs) that are compliance-ready and aligned with industry best practices.
+
+Domain Context: {domain_context}
+
+Your responses must:
+- Use industry-standard terminology
+- Include relevant compliance requirements
+- Provide practical implementation details
+- Be well-structured and professional
+- Address all specified sections comprehensively"""
+
+        user_message = f"""Generate a detailed Business Requirement Document (BRD) with the following specifications:
 
 **Domain**: {domain}
 **Project Title**: {project_title}
@@ -95,9 +157,7 @@ You are an expert Business Analyst specializing in {domain} domain. Generate a c
 **Key Stakeholders**: {stakeholders}
 **Additional Requirements**: {additional_requirements}
 
-**Domain Context**: {domain_context}
-
-Generate a detailed BRD with the following sections:
+Generate a comprehensive BRD with these exact sections:
 1. Project Overview
 2. Business Objectives
 3. Functional Requirements
@@ -107,22 +167,12 @@ Generate a detailed BRD with the following sections:
 7. Stakeholder Analysis
 8. Project Scope
 
-For each section, provide detailed, domain-specific content that addresses:
-- Industry-standard terminology
-- Relevant compliance requirements
-- Domain-specific considerations
-- Practical implementation details
+For each section, provide detailed, domain-specific content. Format your response with clear section headings using the exact section names provided above."""
 
-Ensure the content is:
-- Professional and well-structured
-- Compliance-ready for {domain} regulations
-- Comprehensive and actionable
-- Aligned with industry best practices
-
-Format your response as a structured document with clear section headings and detailed content for each section.
-"""
-        
-        return prompt
+        return [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message}
+        ]
     
     def _get_domain_context(self, domain: str) -> str:
         """Get domain-specific context and compliance requirements"""
@@ -201,10 +251,23 @@ Finance Domain Context:
         return False
     
     def validate_api_connection(self) -> bool:
-        """Validate connection to Gemini API"""
+        """Validate connection to Mistral API"""
         try:
-            test_response = self.model.generate_content("Test connection")
+            # Test with a simple message
+            test_messages = [
+                {"role": "user", "content": "Test connection"}
+            ]
+            response = self._make_mistral_request(test_messages, max_tokens=10)
             return True
+                
         except Exception as e:
             logger.error(f"API connection validation failed: {str(e)}")
             return False
+    
+    def get_provider_info(self) -> Dict[str, str]:
+        """Get information about the Mistral AI provider"""
+        return {
+            "provider": "mistral",
+            "model": self.api_config["model"],
+            "status": "connected" if self.validate_api_connection() else "disconnected"
+        }
